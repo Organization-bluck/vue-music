@@ -42,7 +42,7 @@
     	},
     	progressClick(e){
     		let rect = this.$refs.progressBar.getBoundingClientRect();
-		    let offsetWidth = e.pageX - rect.left;
+		    let offsetWidth = e.pageX - rect.left - 10;
 		    this._offset(offsetWidth);
 		    this._triggerPercent();
     	},

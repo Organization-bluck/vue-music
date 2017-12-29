@@ -19,10 +19,12 @@
       let url = 'https://www.yingshangyan.com/api/music/getList';
       let url1 = 'https://www.yingshangyan.com/api/music/getPlay';
 
+
       new Promise((resolve, reject) => {
           axios.get(url).then((res) => {
             let songid = res.data.data[this.currentIndex].song_id
             this.set_playList(res.data.data)
+            this.setSequenceList(res.data.data)
             resolve(songid)
           })
       }).then(result => {
@@ -34,56 +36,9 @@
           })
       }).then(result => {
         console.log(result.data.file_link);
-        this.setCurrentSongLink('https://www.yingshangyan.com/static/theme/default/img/%E6%B5%B7%E9%98%94%E5%A4%A9%E7%A9%BA.mp3')
+        this.setCurrentSongLink(result.data.file_link)
+        // this.setCurrentSongLink('https://www.yingshangyan.com/static/theme/default/img/%E6%B5%B7%E9%98%94%E5%A4%A9%E7%A9%BA.mp3')
       })
-
-      // this.$axios.get(url).then((res) => {
-      //   if(res.data.code === 200){
-      //     this.set_playList(res.data.data)
-      //     let songid = res.data.data[0].song_id
-      //     this.$axios.get(url1,{
-      //       params:{
-      //         songid
-      //       }
-      //     }).then((res) => {
-      //       console.log(res.data.data.file_link)
-      //       this.set_currentSong(res.data.data.file_link);
-      //     })
-      //   }
-      // })
-
-
-      // axios.get(url).then((res) => {
-      //   let id = res.data.id
-      //   axios.get(url1,{
-      //     params:{
-      //       id
-      //     }
-      //   }).then((res) => {
-      //     console.log(res.data)
-      //   })
-      // })
-
-      // new Promise((resolve, reject) => {
-      //     axios.get(url).then((res) => {
-      //       let id = res.data.id
-      //       resolve(id)
-      //     })
-      // }).then(result => {
-      //     console.log(result)
-      //     return new Promise((resolve, reject) => {
-      //       axios.get(url1,{
-      //         params:{
-      //           id:result
-      //         }
-      //       }).then((res) => {
-      //         resolve(res.data)
-      //       })
-      //     })
-      // }).then(result => {
-      //     console.log(result)
-      // })
-
 
     },
     data(){
@@ -100,10 +55,10 @@
     methods:{
       ...mapActions([
         'set_playList',
-        'set_currentSongLink'
       ]),
       ...mapMutations({
-        setCurrentSongLink:'SET_CURRENT_SONG_LINK'
+        setCurrentSongLink:'SET_CURRENT_SONG_LINK',
+        setSequenceList:'SET_SEQUENCE_LIST'
       })
     },
     components:{

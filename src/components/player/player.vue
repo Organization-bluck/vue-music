@@ -17,16 +17,16 @@
 
         <div class="cd-wrapper">
           <div class="swith-line">
-            <div class="triger"></div>
+            <div class="triger" :class="playing ? '' : 'pause'"></div>
           </div>
-          <div class="cd">
+          <div class="cd animate" :class="[playing ? 'play' : 'pause']">
             <div class="cd-bg"></div>
             <img :src="currentSongMeg.picture" alt="歌曲cd封面" class="cover-img">
           </div>
         </div>
 
         <div class="song-tools">
-          <i class="icon icon-like"></i>
+          <i class="icon icon-like" :class="getFavoriteIcon(currentSongMeg)" @click.stop="toggleFavorite(currentSongMeg)"></i>
           <i class="icon icon-download"></i>
           <i class="icon icon-msg"></i>
           <i class="icon icon-search"></i>
@@ -56,13 +56,13 @@
             <i class="icon icon-nextdetail" @click.stop="next"></i>
           </div>
           <div class="icon-btn">
-            <i class="icon icon-list-music" @click="setMusicListShow(true)"></i>
+            <i class="icon icon-list-music" @click="musicListShow"></i>
           </div>
         </div>
 
       </div>
       <!-- 音频 -->
-      <audio id="myaudio"  v-if="currentSongLink" :src="currentSongLink" ref="audio" @timeupdate="updateTime" @canplay="ready" @ended="end"></audio>
+      <audio id="myaudio" :src="currentSongLink" ref="audio" @timeupdate="updateTime" @canplay="ready" @ended="end"></audio>
     </div>
 
 
@@ -73,9 +73,11 @@
   import Range from 'components/range/range.vue'
   import {mapGetters,mapMutations,mapActions} from 'vuex'
   import axios from 'axios'
-  const url = 'https://www.yingshangyan.com/api/music/getList';
+  import {shuffle} from 'common/js/util.js';
+  import {modeMixin} from 'common/js/mixin'
   const url1 = 'https://www.yingshangyan.com/api/music/getPlay';
   export default {
+    mixins: [modeMixin],
     name: 'player',
     data(){
       return {
@@ -93,11 +95,13 @@
       },
       ...mapGetters([
         'playList',
+        'sequenceList',
         'playing',
         'mode',
         'currentIndex',
         'currentSongLink',
-        'currentSongMeg'
+        'currentSongMeg',
+        'favoriteList'
       ]),
       musicPlayType(){
         return this.mode === 0 ? 'icon-music-shunxu' : this.mode === 1 ? 'icon-music-danqu1' : 'icon-music-random'
@@ -105,24 +109,27 @@
     },
     methods:{
       ...mapActions([
-        'set_currentSongLink'
+        'saveFavoriteList',
+        'deleteFavoriteList'
       ]),
       ...mapMutations({
         setMusicListShow:'SET_SHOW_LIST',
         setPlayingState:'SET_PLAYING_STATE',
         setCurrentIndex:'SET_CURRENT_INDEX',
         setMode:'SET_PLAY_MODE',
-        setCurrentSongLink:'SET_CURRENT_SONG_LINK'
+        setCurrentSongLink:'SET_CURRENT_SONG_LINK',
+        setScrollTop:'SET_SCROLL_TOP',
+        setFavoriteList:'SET_FAVORITE_LIST',
+        setPlayList:'SET_PLAYLIST'
       }),
+      musicListShow(){
+        let scrollTop = (this.currentIndex + 1 - 3) * 42
+        console.log(scrollTop)
+        this.setScrollTop(scrollTop)
+        this.setMusicListShow(true)
+      },
       toggle(){
-        let audio = this.$refs.audio
-        if(!this.playing){
-          audio.play()
-          this.setPlayingState(true)
-        }else{
-          audio.pause()
-          this.setPlayingState(false)
-        }
+        this.playing ? this.setPlayingState(false) : this.setPlayingState(true)
       },
       updateTime(e){
         this.currentTime = e.target.currentTime
@@ -141,17 +148,13 @@
       onProgressBarChange(percent){
         this.$refs.audio.currentTime = this.$refs.audio.duration * percent
       },
-      setPlayType(){
-        let mode = this.mode;
-        if(mode==2)mode=-1
-        mode++;
-        this.setMode(mode)
-      },
+      
       prev(){
         let index = this.currentIndex - 1;
         if(index === -1){
           index = this.playList.length - 1;
         }
+        this.getCurrentSong(index);
         this.setCurrentIndex(index);
       },
       next(){
@@ -159,24 +162,40 @@
         if(index === this.playList.length){
           index = 0;
         }
+        this.getCurrentSong(index);
         this.setCurrentIndex(index);
+      },
+      getCurrentSong(index){
         //请求当前的歌曲链接
+        let songid = this.playList[index].song_id
         new Promise((resolve, reject) => {
-            axios.get(url).then((res) => {
-              let songid = res.data.data[this.currentIndex].song_id
-              resolve(songid)
-            })
-        }).then(result => {
-            console.log(result)
-            return new Promise((resolve, reject) => {
-              axios.get(url1+'?songid='+result).then((res) => {
-                resolve(res.data)
-              })
-            })
+          axios.get(url1+'?songid='+songid).then((res) => {
+            resolve(res.data)
+          })
         }).then(result => {
           console.log(result.data.file_link);
           this.setCurrentSongLink(result.data.file_link)
         })
+      },
+      //收藏歌曲
+      toggleFavorite(song){
+        if(this.isFavorite(song)){
+          this.deleteFavoriteList(song)
+        }else{
+          this.saveFavoriteList(song);
+        }
+      },
+      getFavoriteIcon(song){
+        if(this.isFavorite(song)){
+          return 'collection-color collectionAni'
+        }
+        return ''
+      },
+      isFavorite(song){
+        const index = this.favoriteList.findIndex((item)=>{
+          return item.song_id == song.song_id
+        })
+        return index > -1
       },
       format(interval){
         interval = interval | 0;
@@ -201,8 +220,20 @@
       Range
     },
     watch:{
-      currentIndex(newindex){
-
+      currentSongLink(newSong,oldSong){
+        if(oldSong == newSong){
+          return 
+        }
+        setTimeout(()=>{
+          this.$refs.audio.play();
+          this.setPlayingState(true)
+        },20)
+      },
+      playing(newPlaying){
+        let audio = this.$refs.audio;
+        this.$nextTick(() => {
+          newPlaying ? audio.play():audio.pause();
+        })
       },
       currentSong(newsong){
         console.log(newsong)
@@ -215,6 +246,7 @@
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
   @import '~common/stylus/mixin'
+  @import '~common/stylus/variable'
   
   //动画
   .sliderUpHideRight-enter-to,&.sliderUpHideRight-leave-to
@@ -225,6 +257,33 @@
   .sliderUpHideRight-leave-to
     transform:translate3d(100%,0,0)
     opacity: 0
+  // CD旋转动画
+  @keyframes goRotate{
+    0%{
+      transform: rotate(0)
+    }
+    50%{
+      transform: rotate(180deg)
+    }
+    100%{
+      transform: rotate(360deg)
+    }
+  }
+  // 收藏动画
+  @keyframes collectionAni{
+    0%{
+      transform: scale(1)
+    }
+    30%{
+      transform: scale(1.6)
+    }
+    80%{
+      transform: scale(0.6)
+    }
+    100%{
+      transform: scale(1)
+    }
+  }
   // 
   .player
     position: fixed
@@ -311,12 +370,20 @@
             transform-origin: 14px 16px
             transition: all .3s
             z-index: 5
+            &.pause
+              transform: translate3d(-16px,0,0) rotateZ(-30deg)
         .cd
           width:44vh
           height:44vh
           position:relative
           top:70px
           margin:auto
+          &.animate
+            animation: goRotate 16s linear infinite 0.1s
+          &.play
+            animation-play-state:running
+          &.pause
+            animation-play-state:paused
           .cd-bg
             width: 44vh
             height: 44vh
@@ -357,6 +424,10 @@
           text-align: center
           font-size:20px
           color:rgba(255,255,255,0.8)
+          &.collection-color
+            color:$primarycolor
+          &.collectionAni
+            animation: collectionAni .4s ease-in 0.1s
       // 进度条
       .progress-wrapper
         position:absolute

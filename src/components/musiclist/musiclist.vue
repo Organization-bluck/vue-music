@@ -6,7 +6,7 @@
 					<div class="play-type" @click.stop="setPlayType">
 						<i :class="musicPlayType"></i>
 						<span>{{typeName}}</span>
-						<span>({{playList.length}})</span>
+						<span>({{sequenceList.length}})</span>
 					</div>
 					<div class="right">
 						<div class="collect">
@@ -21,7 +21,7 @@
 					<div class="border-1px"></div>
 				</div>
 				<ul class="container" ref="musiclistContent">
-					<li class="list" v-for="(item, index) in playList" :data-index="index" @click.stop="playIndex(index)">
+					<li class="list" v-for="(item, index) in sequenceList" :data-index="index" @click.stop="playIndex(index)">
 						<div class="border-1px"></div>
 						<i class="playingicon icon-volume-medium" v-show="index === currentIndex"></i>
 						<span class="name">{{item.title}}</span>
@@ -42,8 +42,12 @@
 </template>
 
 <script>
-	import {mapGetters,mapMutations} from 'vuex'
+	import {mapGetters,mapMutations,mapActions} from 'vuex'
+	import axios from 'axios'
+	import {modeMixin} from 'common/js/mixin'
+	const url1 = 'https://www.yingshangyan.com/api/music/getPlay';
 	export default {
+		mixins: [modeMixin],
 		data () {
 			return {
 
@@ -53,21 +57,38 @@
 			...mapMutations({
 				setMusicListShow:'SET_SHOW_LIST',
 				setMode:'SET_PLAY_MODE',
-				setCurrentIndex:'SET_CURRENT_INDEX'
+				setCurrentIndex:'SET_CURRENT_INDEX',
+				setCurrentSongLink:'SET_CURRENT_SONG_LINK'
 			}),
+			...mapActions([
+				'selectItem'
+			]),
 			hideMusicList(){
 				this.setMusicListShow(false)
 			},
-			setPlayType(){
-				let mode = this.mode;
-				if(mode==2)mode=-1
-				mode++;
-				this.setMode(mode)
-			},
+			
 			playIndex(index){
-				this.setCurrentIndex(index)
-				// this.setMusicListShow(false)
-			}
+				if(index === this.currentIndex){
+					return
+				}
+				this.selectItem({
+					list:this.sequenceList,
+					index
+				})
+				this.getCurrentSong(index)
+				this.setMusicListShow(false)
+			},
+			getCurrentSong(index){
+        //请求当前的歌曲链接
+        let songid = this.sequenceList[index].song_id
+        new Promise((resolve, reject) => {
+          axios.get(url1+'?songid='+songid).then((res) => {
+            resolve(res.data)
+          })
+        }).then(result => {
+          this.setCurrentSongLink(result.data.file_link)
+        })
+      },
 		},
 		// methods: {
 		// 	hideMusicList () {
@@ -93,6 +114,7 @@
 				'isShowMusicList',
 				'mode',
 				'playList',
+				'sequenceList',
 				'currentIndex'
 			]),
 		// 	isShowMusicList () {

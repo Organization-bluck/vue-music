@@ -22,6 +22,12 @@ const mutations = {
   },
   [types.SET_CURRENT_SONG_LINK](state, song) {
     state.currentSongLink = song
+  },
+  [types.SET_SCROLL_TOP](state, song) {
+    state.scrolltop = song
+  },
+  [types.SET_FAVORITE_LIST](state, list) {
+    state.favoriteList = list
   }
   
 }
