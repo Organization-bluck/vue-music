@@ -14,16 +14,31 @@
           </div>
           <i class="icon icon-share"></i>
         </div>
-
-        <div class="cd-wrapper">
-          <div class="swith-line">
-            <div class="triger" :class="playing ? '' : 'pause'"></div>
+        
+        <transition name="fade">
+          <div class="cd-wrapper" v-show="cdShow" @click="isShowCD(false)">
+            <div class="swith-line">
+              <div class="triger" :class="playing ? '' : 'pause'"></div>
+            </div>
+            <div class="cd animate" :class="[playing ? 'play' : 'pause']">
+              <div class="cd-bg"></div>
+              <img :src="currentSongMeg.picture" alt="歌曲cd封面" class="cover-img">
+            </div>
           </div>
-          <div class="cd animate" :class="[playing ? 'play' : 'pause']">
-            <div class="cd-bg"></div>
-            <img :src="currentSongMeg.picture" alt="歌曲cd封面" class="cover-img">
+        </transition>
+        
+        <transition name="fade">
+          <div class="lyric" v-show="!cdShow" @click="isShowCD(true)">
+            <div class="volume-wrapper">
+              <div class="volume">
+                <i class="rangeicon icon-volume-medium"></i>
+                <div class="range">
+                  <range range-type="volume" ball-width="12" current-color="rgba(255,255,255,0.8)" @percentChange="onVolumeBarChange"></range>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </transition>
 
         <div class="song-tools">
           <i class="icon icon-like" :class="getFavoriteIcon(currentSongMeg)" @click.stop="toggleFavorite(currentSongMeg)"></i>
@@ -84,6 +99,7 @@
         songReady:false,
         currentTime:0,
         duration:0,
+        cdShow:true,
       }
     },
     computed:{
@@ -128,6 +144,9 @@
         this.setScrollTop(scrollTop)
         this.setMusicListShow(true)
       },
+      isShowCD (flag) {
+        this.cdShow = flag
+      },
       toggle(){
         this.playing ? this.setPlayingState(false) : this.setPlayingState(true)
       },
@@ -147,6 +166,9 @@
       },
       onProgressBarChange(percent){
         this.$refs.audio.currentTime = this.$refs.audio.duration * percent
+      },
+      onVolumeBarChange(percent){
+        this.$refs.audio.volume = percent
       },
       
       prev(){
@@ -211,6 +233,12 @@
         }
         return num;
       },
+      _isEmpty(obj){
+        for (var name in obj){
+          return false;
+        }
+        return true;
+      }
     },
     mounted(){
       // console.log(this.playList[this.currentIndex])
@@ -235,9 +263,12 @@
           newPlaying ? audio.play():audio.pause();
         })
       },
-      currentSong(newsong){
-        console.log(newsong)
-        // this.$refs.audio.play()
+      currentSongMeg(newSongMeg){
+        if(this._isEmpty(newSongMeg)){
+          this.setCurrentSongLink('http://www.047x.cn/servier/images/music.mp3')
+        }else{
+          this.getCurrentSong(this.currentIndex)
+        }
       }
     }
     
@@ -249,6 +280,10 @@
   @import '~common/stylus/variable'
   
   //动画
+  .fade-enter-active, .fade-leave-active 
+    transition: opacity .2s
+  .fade-enter, .fade-leave-to 
+    opacity: 0
   .sliderUpHideRight-enter-to,&.sliderUpHideRight-leave-to
     transition: all 0.3s
   .sliderUpHideRight-enter
@@ -405,6 +440,33 @@
             left:50%
             transform:translate3d(-50%,0,0)
             z-index:2
+      .lyric
+        position:absolute
+        top:10vh
+        left: 0
+        bottom: 30vh
+        right: 0
+        z-index: 1
+        overflow:hidden
+        .volume-wrapper
+          width:100%
+          height:10vh
+          display:flex
+          flex-direction:row
+          align-items:center
+          .volume
+            display:flex
+            flex-direction:row
+            align-items:center
+            width:90%
+            margin:auto
+            .range
+              flex:1
+            .rangeicon
+              font-size:14px
+              margin-right:10px
+
+
       // 下载工具栏
       .song-tools
         width:70vw

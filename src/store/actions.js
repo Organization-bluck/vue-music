@@ -28,6 +28,17 @@ export const selectItem = function({commit,state},{list,index}){
 	commit(types.SET_PLAYING_STATE, true)
 }
 
+export const deleteItem = function({commit,state},item){
+	let sequenceList = state.sequenceList;
+	let currentIndex = state.currentIndex;
+	let index = findIndex(sequenceList,item)
+	if(index<currentIndex){
+		currentIndex -= 1
+		commit(types.SET_CURRENT_INDEX, currentIndex)
+	}
+	sequenceList.splice(index,1);
+	commit(types.SET_SEQUENCE_LIST, sequenceList);
+}
 
 export const saveFavoriteList = function({commit},song){
 	commit('SET_FAVORITE_LIST',saveFavorite(song))

@@ -9,11 +9,15 @@
 						<span>({{sequenceList.length}})</span>
 					</div>
 					<div class="right">
+						<div class="collect" @click.stop="updateMusic">
+							<i class="icon-diantai"></i>
+							<span>换</span>
+						</div>
 						<div class="collect">
 							<i class="icon-add-project"></i>
 							<span>收藏</span>
 						</div>
-						<div class="delete">
+						<div class="delete" @click.stop="clearList">
 							<i class="icon-delete"></i>
 							<span>清空</span>
 						</div>
@@ -24,9 +28,11 @@
 					<li class="list" v-for="(item, index) in sequenceList" :data-index="index" @click.stop="playIndex(index)">
 						<div class="border-1px"></div>
 						<i class="playingicon icon-volume-medium" v-show="index === currentIndex"></i>
-						<span class="name">{{item.title}}</span>
-						<span class="singer"> - {{item.author}}</span>
-						<i class="close"></i>
+						<div class="info">
+							<span class="name">{{item.title}}</span>
+							<span class="singer"> - {{item.author}}</span>
+						</div>
+						<i class="icon-close" @click.stop="deleteIndex(item,index)"></i>
 						<div class="border-1px"></div>
 					</li>
 					
@@ -38,6 +44,7 @@
 			<div class="mask" v-show="isShowMusicList" @click.stop="hideMusicList" @touchmove.prevent>
 			</div>
 		</transition>
+		<confirm text="是否清空列表？" confirmBtnText="清空" @confirm="confirmFun" ref="confirm"></confirm>
 	</div>
 </template>
 
@@ -45,6 +52,8 @@
 	import {mapGetters,mapMutations,mapActions} from 'vuex'
 	import axios from 'axios'
 	import {modeMixin} from 'common/js/mixin'
+	import confirm from 'components/confirm/confirm.vue'
+	const commentUrl = 'https://www.yingshangyan.com/api/music/getCommentList';
 	const url1 = 'https://www.yingshangyan.com/api/music/getPlay';
 	export default {
 		mixins: [modeMixin],
@@ -58,10 +67,12 @@
 				setMusicListShow:'SET_SHOW_LIST',
 				setMode:'SET_PLAY_MODE',
 				setCurrentIndex:'SET_CURRENT_INDEX',
-				setCurrentSongLink:'SET_CURRENT_SONG_LINK'
+				setCurrentSongLink:'SET_CURRENT_SONG_LINK',
+				setSequenceList:'SET_SEQUENCE_LIST'
 			}),
 			...mapActions([
-				'selectItem'
+				'selectItem',
+				'deleteItem'
 			]),
 			hideMusicList(){
 				this.setMusicListShow(false)
@@ -78,6 +89,9 @@
 				this.getCurrentSong(index)
 				this.setMusicListShow(false)
 			},
+			deleteIndex(item){
+				this.deleteItem(item)
+			},
 			getCurrentSong(index){
         //请求当前的歌曲链接
         let songid = this.sequenceList[index].song_id
@@ -89,6 +103,23 @@
           this.setCurrentSongLink(result.data.file_link)
         })
       },
+      clearList(){
+      	if(this.sequenceList.length){
+      		this.$refs.confirm.show()
+      	}
+      },
+      confirmFun(){
+      	this.setSequenceList('');
+      	this.setPlayList('');
+      	this.setMusicListShow(false)
+      },
+      updateMusic(){
+      	axios.get(commentUrl).then((res) => {
+          this.setPlayList(res.data.data)
+          this.setSequenceList(res.data.data)
+          this.setCurrentIndex(0)
+        })
+      }
 		},
 		// methods: {
 		// 	hideMusicList () {
@@ -138,6 +169,9 @@
 			}
 
 		},
+		components:{
+			confirm
+		}
 		// mounted () {
 		// 	store.dispatch({
 		// 		type: 'set_RefScrollMusicList',
@@ -173,7 +207,7 @@
 					width:auto
 					height:100%
 					line-height:50px
-					padding:0 15px
+					padding:0 10px
 					&:active
 						background:$list_active
 				.play-type
@@ -213,19 +247,32 @@
 				box-sizing:border-box
 				padding: 6px 0
 				.list
+					display:flex
+					flex-direction:row
+					justify-content:center
+					align-items:center
 					height:42px
 					line-height:42px
-					padding:0 15px
-					//font-weight:400
+					padding:0 5px 0 15px
 					font-size:14px
 					color:#666
 					overflow:hidden
+					transition:all .2s
 					.playingicon
 						font-size: 14px
 						vertical-align: middle
 						color:$primarycolor
+						margin-right:5px
 					&:active
 						background:$list_active
+					.info
+						flex:1
+						no-wrap()
+					.icon-close
+						padding:0 5px
+						height:42px
+						line-height:42px
+						float:right
 					.border-1px
 						border-1px($border_1px)
 		.mask

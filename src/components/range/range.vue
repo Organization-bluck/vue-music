@@ -1,5 +1,5 @@
 <template>
-  <div class="progress-bar" ref="progressBar" @click.prevent="progressClick">
+  <div class="progress-bar" ref="progressBar" @click.stop.prevent="progressClick">
   	<div class="progress" ref="progress"></div>
   	<div class="progress-ball" ref="progressBtn"
       @touchstart.prevent="progressTouchStart"
@@ -11,19 +11,43 @@
 </template>
 
 <script>
-  //小球宽度
-  const ballWidth = 16
+
   export default {
     name: 'rang',
     props:{
     	percent:{
     		type:Number,
     		default:0
-    	}
+    	},
+      rangeType:{
+        type:String,
+        default:'progress'
+      },
+      ballWidth:{
+        type:String,
+        default:'16'
+      },
+      currentColor:{
+        type:String,
+        default:'#c62f2f'
+      }
+    },
+    data(){
+      return {
+        volume: 0.9,
+      }
     },
     created(){
 	    this.touch = {};
 	  },
+    mounted(){
+      if(this.rangeType === 'volume'){
+        this.$refs.progressBtn.style.width = `${this.ballWidth}px`
+        this.$refs.progressBtn.style.height = `${this.ballWidth}px`
+        this.$refs.progressBtn.style.top = `-${this.ballWidth / 2 - 1}px`
+        this.$refs.progress.style.background = this.currentColor
+      }
+    },
     methods:{
     	progressTouchStart(e){
     		this.touch.initiated = true;
@@ -33,7 +57,7 @@
     	progressTouchMove(e){
     		if(!this.touch.initiated){return false}
     		let deltaX = e.touches[0].pageX - this.touch.startX;
-    		let offsetWidth = Math.min(this.$refs.progressBar.clientWidth - ballWidth,Math.max(0,this.touch.left + deltaX))
+    		let offsetWidth = Math.min(this.$refs.progressBar.clientWidth - this.ballWidth,Math.max(0,this.touch.left + deltaX))
     		this._offset(offsetWidth);
     	},
     	progressTouchEnd(e){
@@ -51,7 +75,7 @@
     		this.$refs.progressBtn.style.transform = `translate3d(${offsetWidth}px,0,0)`
     	},
     	_triggerPercent(){
-    		let barWidth = this.$refs.progressBar.clientWidth - ballWidth;
+    		let barWidth = this.$refs.progressBar.clientWidth - this.ballWidth;
     		let percent = this.$refs.progress.clientWidth / barWidth;
     		this.$emit('percentChange',percent)
     	}
@@ -59,7 +83,7 @@
     watch:{
     	percent(newPercent){
     		if(newPercent >= 0 && !this.touch.initiated){
-    			let barWidth = this.$refs.progressBar.clientWidth - ballWidth
+    			let barWidth = this.$refs.progressBar.clientWidth - this.ballWidth
     			let offsetWidth = newPercent * barWidth
     			this._offset(offsetWidth)
     		}
